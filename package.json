@@ -4,13 +4,18 @@
   "description": "Scheduling platform",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index",
+    "dev": "nodemon index"
   },
   "author": "Calvin Boyce & Sam Sanft",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.18.3",
     "ejs": "^2.6.1",
-    "express": "^4.16.4"
+    "express": "^4.16.4",
+    "nylas": "^4.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.11"
   }
 }
