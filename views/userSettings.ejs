@@ -1,11 +1,12 @@
 <html>
 	<head>
-		<title>Welcome</title>
+		<title><%= settings.username%>'s Settings</title>
 	</head>
 	<body>
-		<h1>Welcome, <%= username %></h1>
+		<h1>Welcome, <%= settings.firstName%></h1>
 		<h3>Settings:<h3>
+		
 		<a href="http://localhost:<%= port%>">Home</a>
-		<a href="http://localhost:<%= port%>/connect">Connect Calendar</a>
+		<a href="http://localhost:<%= port%>/connect/<%= settings.username%>">Connect Calendar</a>
 	</body>
 </html>

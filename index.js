@@ -1,7 +1,8 @@
 //dependencies
 const express = require('express');
-var ejs = require('ejs');
-var bodyParser = require('body-parser');
+const ejs = require('ejs');
+const bodyParser = require('body-parser');
+const jsondb = require('node-json-db/dist/JsonDB');
 const Nylas = require('nylas');
 
 //initialization
@@ -15,6 +16,9 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false}));
 
+//db setup
+var users = new jsondb("UsersData", true, true, '/');
+
 //nylas setup
 Nylas.config({
     appId: '9lkzcjkmcbkbmndwi0wd9tnhe',
@@ -27,53 +31,83 @@ app.get('/', function(req, res) {
     res.render('main.ejs', {port});
 });
 
-//userCreate URL GET (sign up)
-app.get('/userCreate', function(req, res) {
-    res.render('userCreate.ejs', {port});
+//signUp URL GET
+app.get('/signUp', function(req, res) {
+    res.render('signUp.ejs', {port});
 });
 
-//userCreate/new URL POST
-app.post('/userCreate/new', function(req, res) {
-    response = {
-        firstName : req.body.firstName,
-        lastName : req.body.lastName,
-        username : req.body.username,
-        password : req.body.password
-        
-    };
-
-    res.redirect('http://localhost:' + port + '/user/' + req.body.username);
-    console.log(response)
+//signUp URL POST
+app.post('/signUp', function(req, res) {
+    meetingInfo = {meetingTitle: "Sales Meeting", meetingLink: req.body.username, timezone: -7, 
+                        days: [false, true, true, true, true, true, false], timeIn: 9, timeOut: 17, meetingLength: 30};
+    nylasInfo = {auth: false, ACCESS_TOKEN: null};
+    response = {firstName: req.body.firstName, lastName: req.body.lastName, email: req.body.email, 
+                    username: req.body.username, password: req.body.password, meetingInfo, nylasInfo};
+    
+    try {
+        users.getData('/' + response.username);
+        console.log("username already exists");
+        res.redirect('http:localhost:' + port + '/signUp');
+    } catch (err) {
+        users.push('/' + response.username, response);
+        console.log("user created");
+        res.redirect('http://localhost:' + port + '/user/' + response.username);
+    }
 });
 
-//user URL GET (sign in)
-app.get('/user', function(req, res) {
-    res.render('userValidate.ejs', {port});
+//signIn URL GET
+app.get('/signIn', function(req, res) {
+    res.render('signIn.ejs', {port});
 });
 
-//user/validate URL POST
-app.post('/user/validate', function(req, res) {
-    res.redirect('http://localhost:' + port + '/user/' + req.body.username);
+//signIn URL POST
+app.post('/signIn', function(req, res) {
+    response = {username: req.body.username, password: req.body.password};
+    let credentials;
+
+    try {
+        credentials = users.getData('/' + response.username);
+
+        if (response.password == credentials.password) {
+            console.log (response.username + " signed in");
+            res.redirect('http://localhost:' + port + '/user/' + response.username);
+        } else {
+            console.log ("incorrect password");
+            res.redirect('http://localhost:' + port + '/signIn');
+        }
+    } catch (err) {
+        console.log('user does not exist')
+        res.redirect('http://localhost:' + port + '/signIn');
+    }
 });
 
 //user/id URL GET (settings)
 app.get('/user/:id', function(req, res) {
-    res.render('userSettings.ejs', {username:req.params.id, port});
+    try {
+        let settings = users.getData('/' + req.params.id);
+        res.render('userSettings.ejs', {settings, port});
+    } catch (err) {
+        console.log ("user does not exist");
+        res.redirect('http://localhost:' + port + '/');
+    }
 });
 
+//nylas oauth
 //connect to nylas oauth
-app.get('/connect', (req, res, next) => {
+app.get('/connect/:id', (req, res, next) => {
     options = {
-        redirectURI: 'http://localhost:' + port + '/oauth/callback',
+        redirectURI: 'http://localhost:' + port + '/oauth/callback/' + req.params.id
     };
     res.redirect(Nylas.urlForAuthentication(options));
 });
 
 //handle response
-app.get('/oauth/callback', (req, res, next) => {
+app.get('/oauth/callback/:id', (req, res, next) => {
     if (req.query.code) {
         Nylas.exchangeCodeForToken(req.query.code).then(token => {
-            //save code
+            console.log(token);
+            users.push('/' + req.params.id +'/nylasInfo/ACCESS_TOKEN', token);
+            users.push('/' + req.params.id +'/nylasInfo/auth', true);
         })
     } else if (req.query.error) {
         res.render('oauthError.ejs', {error:req.query.reason, port});

@@ -1,0 +1,32 @@
+{
+    "calvinrboyce": {
+        "firstName": "Calvin",
+        "lastName": [
+            "Boyce",
+            "calvinrboyce@gmail.com"
+        ],
+        "username": "calvinrboyce",
+        "password": "211211cb",
+        "meetingInfo": {
+            "meetingTitle": "Sales Meeting",
+            "meetingLink": "calvinrboyce",
+            "timezone": -7,
+            "days": [
+                false,
+                true,
+                true,
+                true,
+                true,
+                true,
+                false
+            ],
+            "timeIn": 9,
+            "timeOut": 17,
+            "meetingLength": 30
+        },
+        "nylasInfo": {
+            "auth": false,
+            "ACCESS_TOKEN": null
+        }
+    }
+}
