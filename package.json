@@ -13,9 +13,11 @@
     "body-parser": "^1.18.3",
     "ejs": "^2.6.1",
     "express": "^4.16.4",
+    "local-storage": "^2.0.0",
     "node-json-db": "^0.11.0",
     "nylas": "^4.5.0",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sessionstorage": "^0.1.0"
   },
   "devDependencies": {
     "nodemon": "^1.18.11"

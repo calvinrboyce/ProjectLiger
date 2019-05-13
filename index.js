@@ -4,6 +4,7 @@ const ejs = require('ejs');
 const bodyParser = require('body-parser');
 const jsondb = require('node-json-db/dist/JsonDB');
 const Nylas = require('nylas');
+const sessionStorage = require('sessionstorage');
 
 //initialization
 const app = express();
@@ -28,7 +29,13 @@ Nylas.config({
 
 //root URL GET
 app.get('/', function(req, res) {
-    res.render('main.ejs', {port});
+    try {
+        let settings = users.getData('/' + sessionStorage.getItem('username'));
+        res.render('userSettings.ejs', {settings, port});
+    } catch (err) {
+        console.log("not signed in or user does not exist");
+        res.render('main.ejs', {port});
+    }
 });
 
 //signUp URL GET
@@ -47,11 +54,12 @@ app.post('/signUp', function(req, res) {
     try {
         users.getData('/' + response.username);
         console.log("username already exists");
-        res.redirect('http:localhost:' + port + '/signUp');
+        res.redirect('http:localhost:' + port + '/signIn');
     } catch (err) {
         users.push('/' + response.username, response);
         console.log("user created");
-        res.redirect('http://localhost:' + port + '/user/' + response.username);
+        sessionStorage.setItem("username", response.username);
+        res.redirect('http://localhost:' + port + '/');
     }
 });
 
@@ -70,7 +78,8 @@ app.post('/signIn', function(req, res) {
 
         if (response.password == credentials.password) {
             console.log (response.username + " signed in");
-            res.redirect('http://localhost:' + port + '/user/' + response.username);
+            sessionStorage.setItem('username', response.username);
+            res.redirect('http://localhost:' + port + '/');
         } else {
             console.log ("incorrect password");
             res.redirect('http://localhost:' + port + '/signIn');
@@ -81,38 +90,47 @@ app.post('/signIn', function(req, res) {
     }
 });
 
-//user/id URL GET (settings)
-app.get('/user/:id', function(req, res) {
-    try {
-        let settings = users.getData('/' + req.params.id);
-        res.render('userSettings.ejs', {settings, port});
-    } catch (err) {
-        console.log ("user does not exist");
-        res.redirect('http://localhost:' + port + '/');
-    }
-});
+//signOut
+app.get('/signOut', function(req, res) {
+    sessionStorage.clear();
+    res.redirect('http://localhost:' + port);
+})
 
 //nylas oauth
 //connect to nylas oauth
-app.get('/connect/:id', (req, res, next) => {
+app.get('/connect', (req, res, next) => {
     options = {
-        redirectURI: 'http://localhost:' + port + '/oauth/callback/' + req.params.id
+        redirectURI: `http://localhost:${port}/oauth/callback`
     };
     res.redirect(Nylas.urlForAuthentication(options));
 });
 
 //handle response
-app.get('/oauth/callback/:id', (req, res, next) => {
+app.get('/oauth/callback', (req, res, next) => {
     if (req.query.code) {
+        res.render('connecting.ejs', {port});
         Nylas.exchangeCodeForToken(req.query.code).then(token => {
             console.log(token);
-            users.push('/' + req.params.id +'/nylasInfo/ACCESS_TOKEN', token);
-            users.push('/' + req.params.id +'/nylasInfo/auth', true);
+            users.push('/' + sessionStorage.getItem('username') +'/nylasInfo/ACCESS_TOKEN', token);
+            users.push('/' + sessionStorage.getItem('username') +'/nylasInfo/auth', true);
         })
     } else if (req.query.error) {
         res.render('oauthError.ejs', {error:req.query.reason, port});
     }
 });
+
+//nylas test
+app.get('/nylas', function (req, res) {
+    const nylas = Nylas.with(users.getData('/' + sessionStorage.getItem('username') + '/nylasInfo/ACCESS_TOKEN'))
+    nylas.calendars.list().then(calendars => {
+        res.send(calendars);
+        console.log(calendars);
+    })
+
+    nylas.calendars.first({ read_only: false }).then(calendar => {
+        console.log(calendar);
+    });
+})
 
 //running confirmation message
 app.listen(port, () => console.log(`Local host opened at port ${port}!`));
