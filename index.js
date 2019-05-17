@@ -121,15 +121,50 @@ app.get('/oauth/callback', (req, res, next) => {
 
 //nylas test
 app.get('/nylas', function (req, res) {
-    const nylas = Nylas.with(users.getData('/' + sessionStorage.getItem('username') + '/nylasInfo/ACCESS_TOKEN'))
+    const nylas = Nylas.with(users.getData('/' + sessionStorage.getItem('username') + '/nylasInfo/ACCESS_TOKEN'));
     nylas.calendars.list().then(calendars => {
-        res.send(calendars);
-        console.log(calendars);
-    })
-
-    nylas.calendars.first({ read_only: false }).then(calendar => {
-        console.log(calendar);
+        //res.send(calendars[1]);
+        console.log(calendars[1]);
+        var calId = calendars[1].id;
+        console.log(calId);
+        sessionStorage.setItem('calendarId', calId);
     });
+
+    nylas.events.list({calendar_id: sessionStorage.getItem('calendarId'), ends_after: 1558105200, starts_before: 1558134000}).then(events => {
+        res.send(events);
+        console.log(events);
+    }).catch(err => {
+        res.send('events not found!');
+        console.log('events not found!');
+    })
+})
+
+//meeting test
+app.get('/meeting', function (req, res) {
+    res.render('meeting.ejs', {port});
+})
+
+app.post('/meeting', function (req, res) {
+    const nylas = Nylas.with(users.getData('/' + sessionStorage.getItem('username') + '/nylasInfo/ACCESS_TOKEN'));
+    nylas.calendars.list().then(calendars => {
+        var calId = calendars[1].id;
+        sessionStorage.setItem('calendarId', calId);
+    });
+    console.log(req.body.meetingTime);
+    var startTime = Date.parse(req.body.meetingTime) + 21600;
+    const event = nylas.events.build({
+        title: 'Test Meeting',
+        calendarId: sessionStorage.getItem('calendarId'),
+        when: { start_time: startTime, end_time: (startTime + 1800) },
+        participants: [{ email: 'cb040403@stu.provo.edu', name: 'Calvin Boyce' }],
+      });
+    event.save({ notify_participants: true }).then(event => {
+        console.log(event);
+        console.log('Sent an invite to the participants');
+      }).catch(err => {
+          console.log(`Error: ${err.toString()}`);
+      })
+    res.redirect(`http://localhost:${port}/meeting`);
 })
 
 //running confirmation message

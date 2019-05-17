@@ -1,0 +1,12 @@
+<html>
+	<head>
+		<title>Schedule Meeting</title>
+	</head>
+	<body>
+		<form action="http://localhost:<%= port%>/meeting" method="POST">
+            Schedule a 30 min meeting with me:
+            <input type="datetime-local" name="meetingTime">
+            <input type="submit" value="Check Availability">
+          </form>
+	</body>
+</html>
